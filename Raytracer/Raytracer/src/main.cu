@@ -1,6 +1,7 @@
 #include "vec3.cuh"
 #include "ray.cuh"
 #include "sphere.cuh"
+#include "vector.cuh"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STBI_MSC_SECURE_CRT
@@ -8,8 +9,6 @@
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-
-#include <cfloat> // FLT_MAX
 
 const int width = 500;
 const int height = 500;
@@ -26,11 +25,34 @@ __device__ vec3 cast_ray(float x, float y)
 	direction.z = -1.0f;
 	Ray ray{ vec3{ 0.0f, 0.0f, 0.0f }, vec3::normalize(direction) };
 
+	//------------------
+	vec3 color{ 1.0f, 0.0f, 0.0f };
+	vec3 center{ 0.0f, 0.0f, -5.0f };
+	float radius = 0.5f;
+	vector<Surface *> surfaces;
+	surfaces.push_back(new Sphere{ color, center, radius });
+	color = vec3{ 0.0f, 1.0f, 0.0f };
+	center.x = 1.0f;
+	surfaces.push_back(new Sphere{ color, center, radius });
+	color = vec3{ 0.0f, 0.0f, 1.0f };
+	center.y = 1.0f;
+	surfaces.push_back(new Sphere{ color, center, radius });
+	color = vec3{ 1.0f, 1.0f, 0.0f };
+	center.x = 0.0f;
+	surfaces.push_back(new Sphere{ color, center, radius });
+	//------------------
+
 	// Compute color
 	vec3 final_color{ 0.0f };
-	Sphere sphere{ vec3{0.0f, 0.0f, -5.0f}, 1.0f };
-	if (sphere.collide(ray, 0.0f, FLT_MAX))
-		final_color = vec3{ 1.0f, 0.0f, 0.0f };
+	CollisionData collision_data;
+
+	for (int i = 0; i < surfaces.size(); ++i)
+	{
+		if (surfaces[i]->collide(ray, 0.0f, collision_data.mT, collision_data))
+			final_color += collision_data.mColor;
+
+		delete surfaces[i];
+	}
 	return final_color;
 }
 
