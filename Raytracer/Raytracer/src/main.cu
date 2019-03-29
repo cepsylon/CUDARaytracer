@@ -3,6 +3,7 @@
 #include "ray.cuh"
 #include "sphere.cuh"
 #include "scene.cuh"
+#include "importer.cuh"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STBI_MSC_SECURE_CRT
@@ -91,9 +92,7 @@ int main()
 	initialize_scene<<<1,1>>>(scene);
 	CheckCUDAError(cudaGetLastError());
 	CheckCUDAError(cudaDeviceSynchronize());
-	populate_scene<<<1,1>>>(scene);
-	CheckCUDAError(cudaGetLastError());
-	CheckCUDAError(cudaDeviceSynchronize());
+	importer::import_scene("scene.txt", scene);
 
 	// Allocate memory in GPU
 	unsigned char * image_data = nullptr;

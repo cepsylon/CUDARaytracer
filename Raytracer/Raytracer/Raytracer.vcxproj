@@ -88,6 +88,7 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="src\importer.cu" />
     <CudaCompile Include="src\main.cu" />
     <CudaCompile Include="src\ray.cu" />
     <CudaCompile Include="src\scene.cu" />
@@ -97,6 +98,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\debug.h" />
+    <ClInclude Include="src\importer.cuh" />
     <ClInclude Include="src\ray.cuh" />
     <ClInclude Include="src\scene.cuh" />
     <ClInclude Include="src\sphere.cuh" />
