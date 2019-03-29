@@ -46,6 +46,11 @@ __host__ __device__ vec3 vec3::operator-() const
 	return vec3{ -x, -y, -z };
 }
 
+__host__ __device__ vec3 vec3::operator*(const vec3 & rhs) const
+{
+	return vec3{ x * rhs.x, y * rhs.y, z * rhs.z };
+}
+
 __host__ __device__ vec3 vec3::operator*(float value) const
 {
 	return vec3{ x * value, y * value, z * value };
@@ -87,4 +92,17 @@ __host__ __device__ vec3 vec3::cross(const vec3 & a, const vec3 & b)
 	return vec3{ a.y * b.z - b.y * a.z,
 							 a.z * b.x - b.z * a.x,
 							 a.x * b.y - b.x * a.y };
+}
+
+__host__ __device__ vec3 vec3::min(const vec3 & a, const vec3 & b)
+{
+	return vec3{ a.x < b.x ? a.x : b.x,
+							 a.y < b.y ? a.y : b.y,
+							 a.z < b.z ? a.z : b.z };
+}
+
+__host__ __device__ vec3 vec3::reflect(const vec3 & i, const vec3 & n)
+{
+	float cos_angle = -vec3::dot(i, n);
+	return i + n * cos_angle * 2.0f;
 }

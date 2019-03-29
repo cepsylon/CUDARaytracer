@@ -29,13 +29,53 @@ __device__ vec3 cast_ray(float x, float y, Scene * scene)
 	vec3 pixel_position = camera.projection_center() + camera.right() * current_x + camera.up() * current_y;
 	Ray ray{ camera.position(), vec3::normalize(pixel_position - camera.position()) };
 
-	// Compute color
+	// Check for collisions
 	CollisionData collision_data;
 	const vector<Surface *> & surfaces = scene->surfaces();
 	for (int i = 0; i < surfaces.size(); ++i)
 		surfaces[i]->collide(ray, 0.0f, collision_data.mT, collision_data);
 
-	return collision_data.mColor;
+	// No need to color pixel
+	if (collision_data.mT == FLT_MAX)
+		return vec3{ 0.0f };
+
+
+	// Shadow check
+	vec3 final_color{ 0.0f };
+	vec3 collision_point = ray.at(collision_data.mT);
+	vec3 reflected = vec3::reflect(ray.direction(), collision_data.mNormal);
+	const vector<PointLight> & lights = scene->lights();
+	for (int i = 0; i < lights.size(); ++i)
+	{
+		CollisionData dummy;
+		ray = Ray{ collision_point, lights[i].position() - collision_point };
+		int shadow_count = 0;
+
+		// Check for collisions, if there's any, we are in shadow
+		for(int j = 0; j < surfaces.size(); ++j)
+		{
+			if (surfaces[j]->collide(ray, 0.001f, 1.0f, dummy))
+				shadow_count++;
+		}
+
+		// In shadow
+		if (shadow_count)
+			continue;
+		
+		// Diffuse
+		vec3 to_light = vec3::normalize(ray.direction());
+		float cos_angle = vec3::dot(to_light, collision_data.mNormal);
+		if (cos_angle < 0.0f)
+			continue;
+		final_color += collision_data.mColor * lights[i].intensity() * cos_angle;
+
+		//// Specular
+		//cos_angle = vec3::dot(reflected, to_light);
+		//if (cos_angle > 0.0f)
+		//	final_color += collision_data.mColor * lights[i].intensity() * cos_angle;
+	}
+
+	return vec3::min(final_color, vec3{ 1.0f });
 }
 
 __global__ void render_image(unsigned char * image_data, int width, int height, Scene * scene)

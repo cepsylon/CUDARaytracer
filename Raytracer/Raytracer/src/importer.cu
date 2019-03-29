@@ -16,6 +16,11 @@ __global__ void add_sphere_to_scene(Scene * scene, vec3 color, vec3 position, fl
 	scene->add(new Sphere{ color, position, radius });
 }
 
+__global__ void add_light_to_scene(Scene * scene, vec3 position, vec3 intensity)
+{
+	scene->add(PointLight{ position, intensity });
+}
+
 __global__ void set_scene_camera(Scene * scene, vec3 position, vec3 right, vec3 up, vec3 center)
 {
 	scene->set_camera(Camera{ position, right, up, center });
@@ -48,6 +53,20 @@ void import_scene(const char * path, Scene * scene)
 
 				// Upload to GPU
 				set_scene_camera <<<1,1>>>(scene, position, right, up, center);
+				CheckCUDAError(cudaGetLastError());
+				CheckCUDAError(cudaDeviceSynchronize());
+				break;
+			}
+			case 'L':
+			{
+				vec3 position, intensity;
+
+				// Position and intensity
+				sscanf_s(line.c_str(), "L (%f,%f,%f) (%f,%f,%f)",
+					&position.x, &position.y, &position.z,
+					&intensity.x, &intensity.y, &intensity.z);
+
+				add_light_to_scene<<<1,1>>>(scene, position, intensity);
 				CheckCUDAError(cudaGetLastError());
 				CheckCUDAError(cudaDeviceSynchronize());
 				break;

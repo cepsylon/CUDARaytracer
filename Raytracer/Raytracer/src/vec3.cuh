@@ -19,6 +19,7 @@ struct vec3
 	__host__ __device__ vec3 operator-(const vec3 & rhs) const;
 	__host__ __device__ vec3 & operator-=(const vec3 & rhs);
 	__host__ __device__ vec3 operator-() const;
+	__host__ __device__ vec3 operator*(const vec3 & rhs) const;
 	__host__ __device__ vec3 operator*(float value) const;
 	__host__ __device__ vec3 & operator*=(float value);
 	__host__ __device__ vec3 operator/(float value) const;
@@ -35,6 +36,12 @@ struct vec3
 
 	// Cross product
 	__host__ __device__ static vec3 cross(const vec3 & a, const vec3 & b);
+
+	// Takes the minimum from each value
+	__host__ __device__ static vec3 min(const vec3 & a, const vec3 & b);
+
+	// Reflects incident ray with normal (normal must be normalized)
+	__host__ __device__ static vec3 reflect(const vec3 & i, const vec3 & n);
 
 	union
 	{

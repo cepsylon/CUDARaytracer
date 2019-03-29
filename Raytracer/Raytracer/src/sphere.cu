@@ -23,16 +23,18 @@ __device__ bool Sphere::collide(const Ray & ray, float t_min, float t_max, Colli
 		float current_t = (-b - std::sqrt(discriminant)) / a;
 		if (t_min <= current_t && current_t <= t_max)
 		{
-			collision_data.mT = current_t;
 			collision_data.mColor = mColor;
+			collision_data.mT = current_t;
+			collision_data.mNormal = vec3::normalize(ray.at(current_t) - mPosition);
 			return true;
 		}
 
 		current_t = (-b + std::sqrt(discriminant)) / a;
 		if (t_min <= current_t && current_t <= t_max)
 		{
-			collision_data.mT = current_t;
 			collision_data.mColor = mColor;
+			collision_data.mT = current_t;
+			collision_data.mNormal = vec3::normalize(ray.at(current_t) - mPosition);
 			return true;
 		}
 	}

@@ -12,6 +12,7 @@ struct CollisionData
 {
 	vec3 mColor{ 0.0f };
 	float mT = FLT_MAX;
+	vec3 mNormal{ 0.0f };
 };
 
 class Surface
