@@ -1,4 +1,6 @@
+#include "vec3.cuh"
 #include "ray.cuh"
+#include "sphere.cuh"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STBI_MSC_SECURE_CRT
@@ -7,7 +9,7 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-#include <iostream>
+#include <cfloat> // FLT_MAX
 
 const int width = 500;
 const int height = 500;
@@ -26,6 +28,9 @@ __device__ vec3 cast_ray(float x, float y)
 
 	// Compute color
 	vec3 final_color{ 0.0f };
+	Sphere sphere{ vec3{0.0f, 0.0f, -5.0f}, 1.0f };
+	if (sphere.collide(ray, 0.0f, FLT_MAX))
+		final_color = vec3{ 1.0f, 0.0f, 0.0f };
 	return final_color;
 }
 
@@ -37,7 +42,7 @@ __global__ void render_image(unsigned char * image_data, int width, int height)
 	if (x >= width || y >= height) return;
 	int pixel_index = y * width * 3 + x * 3;
 
-	// Cast ray
+	// Compute and store color
 	vec3 color = cast_ray(static_cast<float>(x), static_cast<float>(y));
 
 	image_data[pixel_index] = static_cast<unsigned char>(color.r * 255.99f);
@@ -55,9 +60,11 @@ int main()
 	dim3 threads(8, 8);
 	dim3 blocks(width / threads.x + 1, height / threads.y + 1);
 
-	render_image <<<blocks,threads>>>(image_data, width, height);
+	// Render image
+	render_image<<<blocks,threads>>>(image_data, width, height);
 	cudaDeviceSynchronize();
 
+	// Store color
 	stbi_write_png("MyOutput.png", width, height, 3, image_data, 0);
 
 	// Free memory
