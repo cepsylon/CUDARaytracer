@@ -89,9 +89,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <CudaCompile Include="src\main.cu" />
+    <CudaCompile Include="src\ray.cu" />
     <CudaCompile Include="src\vec.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\ray.cuh" />
     <ClInclude Include="src\vec3.cuh" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -1,4 +1,4 @@
-#include "vec3.cuh"
+#include "ray.cuh"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STBI_MSC_SECURE_CRT
@@ -9,6 +9,26 @@
 
 #include <iostream>
 
+const int width = 500;
+const int height = 500;
+const int buffer_size = width * height * 3;
+const int half_width = width / 2;
+const int half_height = height / 2;
+
+__device__ vec3 cast_ray(float x, float y)
+{
+	// Compute ray
+	float current_x = (static_cast<float>(x) + 0.5f - half_width) / half_width;
+	float current_y = -(static_cast<float>(y) + 0.5f - half_height) / half_height;
+	vec3 direction = vec3{ 0.5f, 0.0f, 0.0f } * current_x + vec3{ 0.0f, 0.5f, 0.0f } * current_y;
+	direction.z = -1.0f;
+	Ray ray{ vec3{ 0.0f, 0.0f, 0.0f }, vec3::normalize(direction) };
+
+	// Compute color
+	vec3 final_color{ 0.0f };
+	return final_color;
+}
+
 __global__ void render_image(unsigned char * image_data, int width, int height)
 {
 	// Get coordinates from block and thread indices
@@ -18,7 +38,7 @@ __global__ void render_image(unsigned char * image_data, int width, int height)
 	int pixel_index = y * width * 3 + x * 3;
 
 	// Cast ray
-	vec3 color{ 1.0f };
+	vec3 color = cast_ray(static_cast<float>(x), static_cast<float>(y));
 
 	image_data[pixel_index] = static_cast<unsigned char>(color.r * 255.99f);
 	image_data[pixel_index + 1] = static_cast<unsigned char>(color.g * 255.99f);
@@ -27,9 +47,7 @@ __global__ void render_image(unsigned char * image_data, int width, int height)
 
 int main()
 {
-	int width = 500, height = 500;
-	int buffer_size = width * height * 3;
-
+	// Allocate memory in GPU
 	unsigned char * image_data = nullptr;
 	cudaMallocManaged((void **)&image_data, buffer_size);
 
@@ -41,5 +59,8 @@ int main()
 	cudaDeviceSynchronize();
 
 	stbi_write_png("MyOutput.png", width, height, 3, image_data, 0);
+
+	// Free memory
+	cudaFree(image_data);
 	return 0;
 }

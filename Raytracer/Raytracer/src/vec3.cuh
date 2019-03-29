@@ -14,15 +14,15 @@ struct vec3
 	__host__ __device__ vec3(float x, float y, float z);
 
 	// Operator overloads
-	__host__ __device__ inline vec3 operator+(const vec3 & rhs) const;
-	__host__ __device__ inline vec3 & operator+=(const vec3 & rhs);
-	__host__ __device__ inline vec3 operator-(const vec3 & rhs) const;
-	__host__ __device__ inline vec3 & operator-=(const vec3 & rhs);
-	__host__ __device__ inline vec3 operator-() const;
-	__host__ __device__ inline vec3 operator*(float value) const;
-	__host__ __device__ inline vec3 & operator*=(float value);
-	__host__ __device__ inline vec3 operator/(float value) const;
-	__host__ __device__ inline vec3 & operator/=(float value);
+	__host__ __device__ vec3 operator+(const vec3 & rhs) const;
+	__host__ __device__ vec3 & operator+=(const vec3 & rhs);
+	__host__ __device__ vec3 operator-(const vec3 & rhs) const;
+	__host__ __device__ vec3 & operator-=(const vec3 & rhs);
+	__host__ __device__ vec3 operator-() const;
+	__host__ __device__ vec3 operator*(float value) const;
+	__host__ __device__ vec3 & operator*=(float value);
+	__host__ __device__ vec3 operator/(float value) const;
+	__host__ __device__ vec3 & operator/=(float value);
 
 	// Dot product
 	__host__ __device__ static float dot(const vec3 & a, const vec3 & b);

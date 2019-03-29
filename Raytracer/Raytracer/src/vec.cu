@@ -19,50 +19,50 @@ __host__ __device__ vec3::vec3(float x, float y, float z)
 { }
 
 
-__host__ __device__ inline vec3 vec3::operator+(const vec3 & rhs) const
+__host__ __device__ vec3 vec3::operator+(const vec3 & rhs) const
 {
 	return vec3{ x + rhs.x, y + rhs.y, z + rhs.z };
 }
 
-__host__ __device__ inline vec3 & vec3::operator+=(const vec3 & rhs)
+__host__ __device__ vec3 & vec3::operator+=(const vec3 & rhs)
 {
 	x += rhs.x; y += rhs.y; z += rhs.z;
 	return *this;
 }
 
-__host__ __device__ inline vec3 vec3::operator-(const vec3 & rhs) const
+__host__ __device__ vec3 vec3::operator-(const vec3 & rhs) const
 {
 	return vec3{ x - rhs.x, y - rhs.y, z - rhs.z };
 }
 
-__host__ __device__ inline vec3 & vec3::operator-=(const vec3 & rhs)
+__host__ __device__ vec3 & vec3::operator-=(const vec3 & rhs)
 {
 	x -= rhs.x; y -= rhs.y; z -= rhs.z;
 	return *this;
 }
 
-__host__ __device__ inline vec3 vec3::operator-() const
+__host__ __device__ vec3 vec3::operator-() const
 {
 	return vec3{ -x, -y, -z };
 }
 
-__host__ __device__ inline vec3 vec3::operator*(float value) const
+__host__ __device__ vec3 vec3::operator*(float value) const
 {
 	return vec3{ x * value, y * value, z * value };
 }
 
-__host__ __device__ inline vec3 & vec3::operator*=(float value)
+__host__ __device__ vec3 & vec3::operator*=(float value)
 {
 	x *= value; y *= value; z *= value;
 	return *this;
 }
 
-__host__ __device__ inline vec3 vec3::operator/(float value) const
+__host__ __device__ vec3 vec3::operator/(float value) const
 {
 	return vec3{ x / value, y / value, z / value };
 }
 
-__host__ __device__ inline vec3 & vec3::operator/=(float value)
+__host__ __device__ vec3 & vec3::operator/=(float value)
 {
 	x /= value; y /= value; z /= value;
 	return *this;
