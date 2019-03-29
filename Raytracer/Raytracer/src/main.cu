@@ -30,15 +30,12 @@ __device__ vec3 cast_ray(float x, float y, Scene * scene)
 	Ray ray{ camera.position(), vec3::normalize(pixel_position - camera.position()) };
 
 	// Compute color
-	vec3 final_color{ 0.0f };
 	CollisionData collision_data;
 	const vector<Surface *> & surfaces = scene->surfaces();
 	for (int i = 0; i < surfaces.size(); ++i)
-	{
-		if (surfaces[i]->collide(ray, 0.0f, collision_data.mT, collision_data))
-			final_color += collision_data.mColor;
-	}
-	return final_color;
+		surfaces[i]->collide(ray, 0.0f, collision_data.mT, collision_data);
+
+	return collision_data.mColor;
 }
 
 __global__ void render_image(unsigned char * image_data, int width, int height, Scene * scene)
