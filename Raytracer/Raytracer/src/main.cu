@@ -25,9 +25,9 @@ __device__ vec3 cast_ray(float x, float y, Scene * scene)
 	// Compute ray
 	float current_x = (static_cast<float>(x) + 0.5f - half_width) / half_width;
 	float current_y = -(static_cast<float>(y) + 0.5f - half_height) / half_height;
-	vec3 direction = vec3{ 0.5f, 0.0f, 0.0f } * current_x + vec3{ 0.0f, 0.5f, 0.0f } * current_y;
-	direction.z = -1.0f;
-	Ray ray{ vec3{ 0.0f, 0.0f, 0.0f }, vec3::normalize(direction) };
+	const Camera & camera = scene->camera();
+	vec3 pixel_position = camera.projection_center() + camera.right() * current_x + camera.up() * current_y;
+	Ray ray{ camera.position(), vec3::normalize(pixel_position - camera.position()) };
 
 	// Compute color
 	vec3 final_color{ 0.0f };
