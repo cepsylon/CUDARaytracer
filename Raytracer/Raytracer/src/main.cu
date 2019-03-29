@@ -43,21 +43,21 @@ __device__ vec3 cast_ray(float x, float y, Scene * scene)
 	// Shadow check
 	vec3 final_color{ 0.0f };
 	vec3 collision_point = ray.at(collision_data.mT);
-	vec3 reflected = vec3::reflect(ray.direction(), collision_data.mNormal);
+	vec3 reflected = vec3::normalize(vec3::reflect(ray.direction(), collision_data.mNormal));
 	const vector<PointLight> & lights = scene->lights();
 	for (int i = 0; i < lights.size(); ++i)
 	{
 		CollisionData dummy;
 		ray = Ray{ collision_point, lights[i].position() - collision_point };
 		int shadow_count = 0;
-
+		
 		// Check for collisions, if there's any, we are in shadow
 		for(int j = 0; j < surfaces.size(); ++j)
 		{
 			if (surfaces[j]->collide(ray, 0.001f, 1.0f, dummy))
 				shadow_count++;
 		}
-
+		
 		// In shadow
 		if (shadow_count)
 			continue;
@@ -67,12 +67,12 @@ __device__ vec3 cast_ray(float x, float y, Scene * scene)
 		float cos_angle = vec3::dot(to_light, collision_data.mNormal);
 		if (cos_angle < 0.0f)
 			continue;
-		final_color += collision_data.mColor * lights[i].intensity() * cos_angle;
+		final_color += collision_data.mMaterial.mColor * lights[i].intensity() * cos_angle;
 
-		//// Specular
-		//cos_angle = vec3::dot(reflected, to_light);
-		//if (cos_angle > 0.0f)
-		//	final_color += collision_data.mColor * lights[i].intensity() * cos_angle;
+		// Specular
+		cos_angle = vec3::dot(reflected, to_light);
+		if (cos_angle > 0.0f)
+			final_color += lights[i].intensity() * powf(cos_angle, collision_data.mMaterial.mShininess) * collision_data.mMaterial.mSpecularCoefficient;
 	}
 
 	return vec3::min(final_color, vec3{ 1.0f });
@@ -97,23 +97,6 @@ __global__ void render_image(unsigned char * image_data, int width, int height, 
 __global__ void initialize_scene(Scene * scene)
 {
 	new (scene) Scene{};
-}
-
-__global__ void populate_scene(Scene * scene)
-{
-	vec3 color{ 1.0f, 0.0f, 0.0f };
-	vec3 center{ 0.0f, 0.0f, -5.0f };
-	float radius = 0.5f;
-	scene->add(new Sphere{ color, center, radius });
-	color = vec3{ 0.0f, 1.0f, 0.0f };
-	center.x = 1.0f;
-	scene->add(new Sphere{ color, center, radius });
-	color = vec3{ 0.0f, 0.0f, 1.0f };
-	center.y = 1.0f;
-	scene->add(new Sphere{ color, center, radius });
-	color = vec3{ 1.0f, 1.0f, 0.0f };
-	center.x = 0.0f;
-	scene->add(new Sphere{ color, center, radius });
 }
 
 __global__ void destroy_scene(Scene * scene)

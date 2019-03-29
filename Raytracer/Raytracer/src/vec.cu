@@ -103,6 +103,5 @@ __host__ __device__ vec3 vec3::min(const vec3 & a, const vec3 & b)
 
 __host__ __device__ vec3 vec3::reflect(const vec3 & i, const vec3 & n)
 {
-	float cos_angle = -vec3::dot(i, n);
-	return i + n * cos_angle * 2.0f;
+	return i + n * vec3::dot(-i, n) * 2.0f;
 }

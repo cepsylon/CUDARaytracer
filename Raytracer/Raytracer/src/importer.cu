@@ -11,9 +11,9 @@
 namespace importer
 {
 
-__global__ void add_sphere_to_scene(Scene * scene, vec3 color, vec3 position, float radius)
+__global__ void add_sphere_to_scene(Scene * scene, Material material, vec3 position, float radius)
 {
-	scene->add(new Sphere{ color, position, radius });
+	scene->add(new Sphere{ material, position, radius });
 }
 
 __global__ void add_light_to_scene(Scene * scene, vec3 position, vec3 intensity)
@@ -74,18 +74,19 @@ void import_scene(const char * path, Scene * scene)
 			case 'S':
 			{
 				vec3 position, color;
-				float radius;
+				float radius, specular_coefficient, shininess;
 
 				// Position and radius
 				sscanf_s(line.c_str(), "S (%f,%f,%f) %f",
 					&position.x, &position.y, &position.z, &radius);
 
 				// Material
+				// Color, specular coefficient and shininess
 				std::getline(file, line);
-				sscanf_s(line.c_str(), "(%f,%f,%f)", &color.r, &color.g, &color.b);
+				sscanf_s(line.c_str(), "(%f,%f,%f) %f %f", &color.r, &color.g, &color.b, &specular_coefficient, &shininess);
 
 				// Upload to GPU
-				add_sphere_to_scene<<<1,1>>>(scene, color, position, radius);
+				add_sphere_to_scene << <1, 1 >> > (scene, Material{ color, specular_coefficient, shininess }, position, radius);
 				CheckCUDAError(cudaGetLastError());
 				CheckCUDAError(cudaDeviceSynchronize());
 				break;

@@ -2,8 +2,8 @@
 
 #include "ray.cuh"
 
-__device__ Sphere::Sphere(const vec3 & color, const vec3 & position, float radius)
-	: Surface(color)
+__device__ Sphere::Sphere(const Material & material, const vec3 & position, float radius)
+	: Surface(material)
 	, mPosition(position)
 	, mRadius(radius)
 { }
@@ -23,18 +23,18 @@ __device__ bool Sphere::collide(const Ray & ray, float t_min, float t_max, Colli
 		float current_t = (-b - std::sqrt(discriminant)) / a;
 		if (t_min <= current_t && current_t <= t_max)
 		{
-			collision_data.mColor = mColor;
 			collision_data.mT = current_t;
 			collision_data.mNormal = vec3::normalize(ray.at(current_t) - mPosition);
+			collision_data.mMaterial = mMaterial;
 			return true;
 		}
 
 		current_t = (-b + std::sqrt(discriminant)) / a;
 		if (t_min <= current_t && current_t <= t_max)
 		{
-			collision_data.mColor = mColor;
 			collision_data.mT = current_t;
 			collision_data.mNormal = vec3::normalize(ray.at(current_t) - mPosition);
+			collision_data.mMaterial = mMaterial;
 			return true;
 		}
 	}
