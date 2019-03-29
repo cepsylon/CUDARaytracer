@@ -1,5 +1,7 @@
 #include "vec3.cuh"
 
+#include <cmath>
+
 __host__ __device__ vec3::vec3()
 	: x(0.0f)
 	, y(0.0f)
@@ -79,7 +81,7 @@ __host__ __device__ float vec3::dot(const vec3 & a, const vec3 & b)
 }
 __host__ __device__ float vec3::length(const vec3 & value)
 {
-	return std::sqrt(dot(value, value));
+	return sqrt(dot(value, value));
 }
 
 __host__ __device__ vec3 vec3::normalize(const vec3 & value)

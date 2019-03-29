@@ -2,8 +2,6 @@
 
 #include <cuda_runtime.h>
 
-#include <cmath>
-
 struct vec3
 {
 	// Default constructor
