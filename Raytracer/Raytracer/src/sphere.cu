@@ -39,3 +39,6 @@ __device__ bool Sphere::collide(const Ray & ray, float t_min, float t_max, Colli
 
 	return false;
 }
+
+__device__ vec3 Sphere::position() const { return mPosition; }
+__device__ float Sphere::radius() const { return mRadius; }

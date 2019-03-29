@@ -90,16 +90,22 @@
   <ItemGroup>
     <CudaCompile Include="src\main.cu" />
     <CudaCompile Include="src\ray.cu" />
+    <CudaCompile Include="src\scene.cu" />
     <CudaCompile Include="src\sphere.cu" />
     <CudaCompile Include="src\surface.cu" />
     <CudaCompile Include="src\vec.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\debug.h" />
     <ClInclude Include="src\ray.cuh" />
+    <ClInclude Include="src\scene.cuh" />
     <ClInclude Include="src\sphere.cuh" />
     <ClInclude Include="src\surface.cuh" />
     <ClInclude Include="src\vec3.cuh" />
     <ClInclude Include="src\vector.cuh" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\debug.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
