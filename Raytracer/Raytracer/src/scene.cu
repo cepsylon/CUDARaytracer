@@ -1,5 +1,11 @@
 #include "scene.cuh"
 
+__device__ Scene::~Scene()
+{
+	for (int i = 0; i < mSurfaces.size(); ++i)
+		delete mSurfaces[i];
+}
+
 __device__ void Scene::add(Surface * surface)
 {
 	mSurfaces.push_back(surface);

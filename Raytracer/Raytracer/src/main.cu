@@ -43,7 +43,7 @@ __device__ vec3 cast_ray(float x, float y, Scene * scene)
 	// Shadow check
 	vec3 final_color{ collision_data.mMaterial.mColor * 0.4f };
 	vec3 collision_point = ray.at(collision_data.mT);
-	vec3 reflected = vec3::normalize(vec3::reflect(ray.direction(), collision_data.mNormal));
+	vec3 reflected = vec3::reflect(ray.direction(), collision_data.mNormal);
 	const vector<PointLight> & lights = scene->lights();
 	for (int i = 0; i < lights.size(); ++i)
 	{

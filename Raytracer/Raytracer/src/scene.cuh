@@ -10,6 +10,9 @@
 class Scene
 {
 public:
+	// Destructor to free memory
+	__device__ ~Scene();
+
 	// Adds surface to scene
 	__device__ void add(Surface * surface);
 	// Adds light to scene
