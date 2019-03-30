@@ -14,6 +14,12 @@ public:
 	, mCapacity(2u)
 	{	}
 
+	__device__ vector(unsigned i)
+		: mData(new T[i])
+		, mSize(i)
+		, mCapacity(i)
+	{ }
+
 	__device__ ~vector()
 	{
 		if (mData)
