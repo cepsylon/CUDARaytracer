@@ -214,13 +214,14 @@ Material import_material(const std::string & line)
 {
 	glm::vec3 color, attenuation;
 	float specular_coefficient, shininess, permittivity, permeability;
-	sscanf_s(line.c_str(), "(%f,%f,%f) %f %f",
+	sscanf_s(line.c_str(), "(%f,%f,%f) %f %f (%f,%f,%f) %f %f",
 		&color.r, &color.g, &color.b,
 		&specular_coefficient, &shininess,
 		&attenuation.x, &attenuation.y, &attenuation.z,
 		&permittivity, &permeability);
 
-	return Material{ color, attenuation, specular_coefficient, shininess, permittivity, permeability };
+	float refraction_index = std::sqrt(permittivity * permeability);
+	return Material{ color, attenuation, specular_coefficient, shininess, permeability, refraction_index };
 }
 
 }

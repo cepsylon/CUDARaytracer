@@ -23,83 +23,124 @@ const int buffer_size = width * height * 3;
 const int half_width = width / 2;
 const int half_height = height / 2;
 const int shadow_sample_count = 100;
-const int depth = 10;
+const int max_depth = 10;
+
+
+__device__ float compute_refl_coefficient(const Ray & ray, const CollisionData & data, float ni)
+{
+	float cos_angle = glm::dot(-ray.direction(), data.mNormal);
+	float ni_over_nt = ni / data.mMaterial.mRefractionIndex;
+	float inside_sqrt = 1.0f - ni_over_nt * ni_over_nt * (1.0f - cos_angle * cos_angle);
+	if (inside_sqrt < 0.0f)
+		return 1.0f;
+	float square_root = std::sqrt(inside_sqrt);
+	float perpendicular = (ni_over_nt * cos_angle - square_root) / (ni_over_nt * cos_angle + square_root);
+	float parallel = (cos_angle - ni_over_nt * square_root) / (cos_angle + ni_over_nt * square_root);
+	return 0.5f * (perpendicular * perpendicular + parallel * parallel);
+}
+
+__device__ float compute_lit_percentage(const vector<Surface *> & surfaces, const PointLight & light, const glm::vec3 & intersection_point, curandState * random_state)
+{
+	CollisionData dummy;
+	int shadow_count = 0;
+
+	// Soft shadows
+	for (unsigned current_sample = 0; current_sample < shadow_sample_count; ++current_sample)
+	{
+		Ray shadow_ray{ intersection_point, light.rand_pos(random_state) - intersection_point };
+
+		// Check for collisions, if there's any, we are in shadow
+		for (int j = 0; j < surfaces.size(); ++j)
+		{
+			if (surfaces[j]->collide(shadow_ray, 0.001f, 1.0f, dummy))
+			{
+				shadow_count++;
+				break;
+			}
+		}
+	}
+
+	// Compute how much the surface is lit
+	return 1.0f - static_cast<float>(shadow_count) / static_cast<float>(shadow_sample_count);
+}
+
+struct RayData
+{
+	Ray mRay;
+	float mAttenuationInv;
+	int mDepth;
+};
 
 __device__ glm::vec3 cast_ray(float x, float y, Scene * scene, curandState * random_state)
 {
-	// Compute ray
 	float current_x = (static_cast<float>(x) + 0.5f - half_width) / half_width;
 	float current_y = -(static_cast<float>(y) + 0.5f - half_height) / half_height;
 	const Camera & camera = scene->camera();
 	glm::vec3 pixel_position = camera.projection_center() + camera.right() * current_x + camera.up() * current_y;
-	Ray ray{ camera.position(), glm::normalize(pixel_position - camera.position()) };
 	glm::vec3 final_color{ 0.0f };
-	float attenuation_inverse = 1.0f;
+	//float ni = 1.0f;
 
-	for (int ray_count = 0; ray_count < depth; ++ray_count)
+	// Vector to know how many rays we have left since recursion will lead to stackoverflow, we need an iterative mode
+	// We start with the initial ray casted from the camera to the pixel coordinate
+	vector<RayData> ray_stack;
+	ray_stack.push_back(RayData{ Ray{ camera.position(), glm::normalize(pixel_position - camera.position()) }, 1.0f, 0 });
+
+	while(ray_stack.empty() == false)
 	{
+		RayData ray_data = ray_stack.back();
+		ray_stack.pop_back();
+
 		// Check for collisions
 		CollisionData collision_data;
 		const vector<Surface *> & surfaces = scene->surfaces();
 		for (int i = 0; i < surfaces.size(); ++i)
-			surfaces[i]->collide(ray, 0.0f, collision_data.mT, collision_data);
+			surfaces[i]->collide(ray_data.mRay, 0.0f, collision_data.mT, collision_data);
 
 		// Hit nothing, exit
 		if (collision_data.mT == FLT_MAX)
 			break;
 
-		// Shadow check
-		final_color += collision_data.mMaterial.mColor * scene->ambient() * attenuation_inverse;
-		glm::vec3 collision_point = ray.at(collision_data.mT);
-		glm::vec3 reflected = glm::reflect(ray.direction(), collision_data.mNormal);
+		// Intersection point and reflected direction
+		glm::vec3 intersection_point = ray_data.mRay.at(collision_data.mT);
+		glm::vec3 reflected = glm::reflect(ray_data.mRay.direction(), collision_data.mNormal);
+
+		// Ambient
+		final_color += collision_data.mMaterial.mColor * scene->ambient() * ray_data.mAttenuationInv;
+
+		// Local illumination
 		const vector<PointLight> & lights = scene->lights();
 		for (int i = 0; i < lights.size(); ++i)
 		{
-			CollisionData dummy;
-			int shadow_count = 0;
-			
-			// Soft shadows
-			for (unsigned current_sample = 0; current_sample < shadow_sample_count; ++current_sample)
-			{
-				ray = Ray{ collision_point, lights[i].rand_pos(random_state) - collision_point };
-				// Check for collisions, if there's any, we are in shadow
-				for(int j = 0; j < surfaces.size(); ++j)
-				{
-					if (surfaces[j]->collide(ray, 0.001f, 1.0f, dummy))
-					{
-						shadow_count++;
-						break;
-					}
-				}
-			}
-			
-			// Full shadow
-			if (shadow_count == shadow_sample_count)
+			// Check if surface is lit
+			float lit = compute_lit_percentage(surfaces, lights[i], intersection_point, random_state);
+			if (lit == 0.0f)
 				continue;
-			
-			// Compute how much the surface is lit
-			float shadow_percentage = 1.0f - static_cast<float>(shadow_count) / static_cast<float>(shadow_sample_count);
 
 			// Diffuse
-			ray = Ray{ collision_point, lights[i].position() - collision_point };
-			glm::vec3 to_light = glm::normalize(ray.direction());
+			glm::vec3 to_light = glm::normalize(lights[i].position() - intersection_point);
 			float cos_angle = glm::dot(to_light, collision_data.mNormal);
 			if (cos_angle < 0.0f)
 				continue;
-			final_color += collision_data.mMaterial.mColor * lights[i].intensity() * cos_angle * attenuation_inverse * shadow_percentage;
+			final_color += collision_data.mMaterial.mColor * lights[i].intensity() * cos_angle * ray_data.mAttenuationInv * lit;
 
 			// Specular
 			cos_angle = glm::dot(reflected, to_light);
 			if (cos_angle > 0.0f)
-				final_color += lights[i].intensity() * powf(cos_angle, collision_data.mMaterial.mShininess) * collision_data.mMaterial.mSpecularCoefficient * attenuation_inverse * shadow_percentage;
+			{
+				float specular_value = powf(cos_angle, collision_data.mMaterial.mShininess) * collision_data.mMaterial.mSpecularCoefficient;
+				final_color += lights[i].intensity() * specular_value * ray_data.mAttenuationInv * lit;
+			}
 		}
 
-		if (collision_data.mMaterial.mSpecularCoefficient)
+		// Reflection
+		//float reflection_coefficient = compute_refl_coefficient(ray, collision_data, ni);
+		int next_depth = ray_data.mDepth + 1;
+		if (next_depth < max_depth && collision_data.mMaterial.mSpecularCoefficient)
 		{
-			attenuation_inverse *= collision_data.mMaterial.mSpecularCoefficient;
-			ray = Ray{ collision_point + collision_data.mNormal * 0.001f, reflected };
+			Ray next_ray{ intersection_point + collision_data.mNormal * 0.001f, reflected };
+			float next_attenuation = ray_data.mAttenuationInv * collision_data.mMaterial.mSpecularCoefficient;
+			ray_stack.push_back(RayData{ next_ray, next_attenuation, next_depth });
 		}
-		else break;
 	}
 
 	return glm::min(final_color, glm::vec3{ 1.0f });

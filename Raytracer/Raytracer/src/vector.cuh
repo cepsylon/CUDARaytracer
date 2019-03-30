@@ -96,6 +96,11 @@ public:
 		mData[mSize++] = value;
 	}
 
+	__device__ void pop_back()
+	{
+		(mData + --mSize)->~T();
+	}
+
 	__device__ unsigned size() const
 	{
 		return mSize;
@@ -119,6 +124,7 @@ public:
 		return mData[index];
 	}
 
+	__device__ bool empty() const { return mSize == 0; }
 	__device__ const T & front() const { return mData[0]; }
 	__device__ const T & back() const { return mData[mSize - 1]; }
 

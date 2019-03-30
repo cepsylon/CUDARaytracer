@@ -10,6 +10,9 @@
 class Ray
 {
 public:
+	// Default constructor
+	__device__ Ray() {}
+
 	// Constructor
 	__device__ Ray(const glm::vec3 & point, const glm::vec3 & direction);
 
