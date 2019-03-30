@@ -3,7 +3,8 @@
 #include "debug.h"
 #include "scene.cuh"
 #include "sphere.cuh"
-#include "Box.cuh"
+#include "box.cuh"
+#include "ellipsoid.cuh"
 
 #define GLM_FORCE_CUDA
 #include <glm/glm.hpp>
@@ -22,6 +23,11 @@ __global__ void add_sphere_to_scene(Scene * scene, Material material, glm::vec3 
 __global__ void add_box_to_scene(Scene * scene, Material material, glm::vec3 position, glm::vec3 width, glm::vec3 height, glm::vec3 depth)
 {
 	scene->add(new Box{ material, position, width, height, depth });
+}
+
+__global__ void add_ellipsoid_to_scene(Scene * scene, Material material, glm::vec3 position, glm::vec3 width, glm::vec3 height, glm::vec3 depth)
+{
+	scene->add(new Ellipsoid{ material, position, width, height, depth });
 }
 
 __global__ void add_light_to_scene(Scene * scene, glm::vec3 position, glm::vec3 intensity)
@@ -101,6 +107,30 @@ void import_scene(const char * path, Scene * scene)
 
 				// Upload to GPU
 				set_scene_camera<<<1,1>>>(scene, position, right, up, center);
+				CheckCUDAError(cudaGetLastError());
+				CheckCUDAError(cudaDeviceSynchronize());
+				break;
+			}
+			case 'E':
+			{
+				glm::vec3 position, width, height, depth;
+
+				// Position, width, height and depth
+				sscanf_s(line.c_str(), "E (%f,%f,%f) (%f,%f,%f) (%f,%f,%f) (%f,%f,%f)",
+					&position.x, &position.y, &position.z,
+					&width.x, &width.y, &width.z,
+					&height.x, &height.y, &height.z,
+					&depth.x, &depth.y, &depth.z);
+
+				// Material
+				// Color, specular coefficient and shininess
+				glm::vec3 color;
+				float specular_coefficient, shininess;
+				std::getline(file, line);
+				sscanf_s(line.c_str(), "(%f,%f,%f) %f %f", &color.r, &color.g, &color.b, &specular_coefficient, &shininess);
+
+				// Upload to GPU
+				add_ellipsoid_to_scene<<<1,1>>>(scene, Material{ color, specular_coefficient, shininess }, position, width, height, depth);
 				CheckCUDAError(cudaGetLastError());
 				CheckCUDAError(cudaDeviceSynchronize());
 				break;
