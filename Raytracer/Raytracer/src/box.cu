@@ -2,11 +2,11 @@
 
 #include "ray.cuh"
 
-__device__ Box::Box(const Material & material, const vec3 & position, const vec3 & width, const vec3 & height, const vec3 & depth)
+__device__ Box::Box(const Material & material, const glm::vec3 & position, const glm::vec3 & width, const glm::vec3 & height, const glm::vec3 & depth)
 	: Surface(material)
 	, mPlanes(6)
 {
-	vec3 normals[] = { vec3::normalize(vec3::cross(width, height)), vec3::normalize(vec3::cross(height, depth)), vec3::normalize(vec3::cross(depth, width)) };
+	glm::vec3 normals[] = { glm::normalize(glm::cross(width, height)), glm::normalize(glm::cross(height, depth)), glm::normalize(glm::cross(depth, width)) };
 	mPlanes[0] = Plane{ position, normals[0] };
 	mPlanes[1] = Plane{ position + depth, -normals[0] };
 	mPlanes[2] = Plane{ position, normals[1] };
@@ -23,13 +23,13 @@ __device__ bool Box::collide(const Ray & ray, float t_min, float t_max, Collisio
 	for (unsigned i = 0; i < mPlanes.size() && t_min <= t_max; ++i)
 	{
 		const Plane & plane = mPlanes[i];
-		vec3 to_ray = ray.point() - plane.mCenter;
-		const vec3 & normal = plane.mNormal;
-		float cos_angle = vec3::dot(normal, ray.direction());
+		glm::vec3 to_ray = ray.point() - plane.mCenter;
+		const glm::vec3 & normal = plane.mNormal;
+		float cos_angle = glm::dot(normal, ray.direction());
 
 		if (cos_angle < 0.0f)
 		{
-			float value = -vec3::dot(to_ray, normal) / cos_angle;
+			float value = -glm::dot(to_ray, normal) / cos_angle;
 			if (value > t_min)
 			{
 				t_min = value;
@@ -38,7 +38,7 @@ __device__ bool Box::collide(const Ray & ray, float t_min, float t_max, Collisio
 		}
 		else if (cos_angle > 0.0f)
 		{
-			float value = -vec3::dot(to_ray, normal) / cos_angle;
+			float value = -glm::dot(to_ray, normal) / cos_angle;
 			if (value < t_max)
 			{
 				t_max = value;
@@ -46,7 +46,7 @@ __device__ bool Box::collide(const Ray & ray, float t_min, float t_max, Collisio
 			}
 		}
 		// No collision
-		else if (vec3::dot(to_ray, normal) > 0.0f)
+		else if (glm::dot(to_ray, normal) > 0.0f)
 			t_min = t_max + 1;
 	}
 

@@ -54,6 +54,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)extern\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -64,6 +65,8 @@
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <Include>$(ProjectDir)src\;$(ProjectDir)extern\include\</Include>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
+      <AdditionalCompilerOptions>
+      </AdditionalCompilerOptions>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -73,6 +76,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\;$(ProjectDir)extern\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -97,7 +101,6 @@
     <CudaCompile Include="src\scene.cu" />
     <CudaCompile Include="src\sphere.cu" />
     <CudaCompile Include="src\surface.cu" />
-    <CudaCompile Include="src\vec.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\box.cuh" />
@@ -110,7 +113,6 @@
     <ClInclude Include="src\scene.cuh" />
     <ClInclude Include="src\sphere.cuh" />
     <ClInclude Include="src\surface.cuh" />
-    <ClInclude Include="src\vec3.cuh" />
     <ClInclude Include="src\vector.cuh" />
   </ItemGroup>
   <ItemGroup>

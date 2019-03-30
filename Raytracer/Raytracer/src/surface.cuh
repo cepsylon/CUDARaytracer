@@ -1,7 +1,11 @@
 #pragma once
 
-#include "vec3.cuh"
 #include "material.cuh"
+
+#include <cuda.h>
+
+#define GLM_FORCE_CUDA
+#include <glm/glm.hpp>
 
 #include <cuda_runtime.h>
 
@@ -11,7 +15,7 @@ class Ray;
 
 struct CollisionData
 {
-	vec3 mNormal{ 0.0f };
+	glm::vec3 mNormal{ 0.0f };
 	float mT = FLT_MAX;
 	Material mMaterial;
 };

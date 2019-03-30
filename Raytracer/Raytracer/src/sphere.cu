@@ -2,7 +2,7 @@
 
 #include "ray.cuh"
 
-__device__ Sphere::Sphere(const Material & material, const vec3 & position, float radius)
+__device__ Sphere::Sphere(const Material & material, const glm::vec3 & position, float radius)
 	: Surface(material)
 	, mPosition(position)
 	, mRadius(radius)
@@ -11,10 +11,10 @@ __device__ Sphere::Sphere(const Material & material, const vec3 & position, floa
 __device__ bool Sphere::collide(const Ray & ray, float t_min, float t_max, CollisionData & collision_data) const
 {
 	// Ray sphere collision
-	vec3 to_ray_start = ray.point() - mPosition;
-	float a = vec3::dot(ray.direction(), ray.direction());
-	float b = vec3::dot(to_ray_start, ray.direction());
-	float c = vec3::dot(to_ray_start, to_ray_start) - mRadius * mRadius;
+	glm::vec3 to_ray_start = ray.point() - mPosition;
+	float a = glm::dot(ray.direction(), ray.direction());
+	float b = glm::dot(to_ray_start, ray.direction());
+	float c = glm::dot(to_ray_start, to_ray_start) - mRadius * mRadius;
 
 	// Compute discriminant, 4 is gone with the two 2s in b
 	float discriminant = b * b - a * c;
@@ -24,7 +24,7 @@ __device__ bool Sphere::collide(const Ray & ray, float t_min, float t_max, Colli
 		if (t_min <= current_t && current_t <= t_max)
 		{
 			collision_data.mT = current_t;
-			collision_data.mNormal = vec3::normalize(ray.at(current_t) - mPosition);
+			collision_data.mNormal = glm::normalize(ray.at(current_t) - mPosition);
 			collision_data.mMaterial = mMaterial;
 			return true;
 		}
@@ -33,7 +33,7 @@ __device__ bool Sphere::collide(const Ray & ray, float t_min, float t_max, Colli
 		if (t_min <= current_t && current_t <= t_max)
 		{
 			collision_data.mT = current_t;
-			collision_data.mNormal = vec3::normalize(ray.at(current_t) - mPosition);
+			collision_data.mNormal = glm::normalize(ray.at(current_t) - mPosition);
 			collision_data.mMaterial = mMaterial;
 			return true;
 		}
@@ -42,5 +42,5 @@ __device__ bool Sphere::collide(const Ray & ray, float t_min, float t_max, Colli
 	return false;
 }
 
-__device__ vec3 Sphere::position() const { return mPosition; }
+__device__ glm::vec3 Sphere::position() const { return mPosition; }
 __device__ float Sphere::radius() const { return mRadius; }

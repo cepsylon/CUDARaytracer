@@ -1,20 +1,25 @@
 #pragma once
 
-#include "vec3.cuh"
+#include <cuda.h>
+
+#define GLM_FORCE_CUDA
+#include <glm/glm.hpp>
+
+#include <cuda_runtime.h>
 
 class Ray
 {
 public:
 	// Constructor
-	__device__ Ray(const vec3 & point, const vec3 & direction);
+	__device__ Ray(const glm::vec3 & point, const glm::vec3 & direction);
 
 	// Compute point at t
-	__device__ vec3 at(float t) const;
+	__device__ glm::vec3 at(float t) const;
 
 	// Gettors
-	__device__ vec3 point() const;
-	__device__ vec3 direction() const;
+	__device__ glm::vec3 point() const;
+	__device__ glm::vec3 direction() const;
 private:
-	vec3 mPoint;
-	vec3 mDirection;
+	glm::vec3 mPoint;
+	glm::vec3 mDirection;
 };

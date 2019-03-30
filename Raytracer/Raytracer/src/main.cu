@@ -1,16 +1,18 @@
 #include "debug.h"
-#include "vec3.cuh"
 #include "ray.cuh"
 #include "sphere.cuh"
 #include "scene.cuh"
 #include "importer.cuh"
 
+#define GLM_FORCE_CUDA
+#include <glm/glm.hpp>
+
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STBI_MSC_SECURE_CRT
-#include "stb/stb_image_write.h"
+#include <stb/stb_image_write.h>
 
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
 
 #include <iostream>
 
@@ -20,14 +22,14 @@ const int buffer_size = width * height * 3;
 const int half_width = width / 2;
 const int half_height = height / 2;
 
-__device__ vec3 cast_ray(float x, float y, Scene * scene)
+__device__ glm::vec3 cast_ray(float x, float y, Scene * scene)
 {
 	// Compute ray
 	float current_x = (static_cast<float>(x) + 0.5f - half_width) / half_width;
 	float current_y = -(static_cast<float>(y) + 0.5f - half_height) / half_height;
 	const Camera & camera = scene->camera();
-	vec3 pixel_position = camera.projection_center() + camera.right() * current_x + camera.up() * current_y;
-	Ray ray{ camera.position(), vec3::normalize(pixel_position - camera.position()) };
+	glm::vec3 pixel_position = camera.projection_center() + camera.right() * current_x + camera.up() * current_y;
+	Ray ray{ camera.position(), glm::normalize(pixel_position - camera.position()) };
 
 	// Check for collisions
 	CollisionData collision_data;
@@ -37,13 +39,13 @@ __device__ vec3 cast_ray(float x, float y, Scene * scene)
 
 	// No need to color pixel
 	if (collision_data.mT == FLT_MAX)
-		return vec3{ 0.0f };
+		return glm::vec3{ 0.0f };
 
 
 	// Shadow check
-	vec3 final_color{ collision_data.mMaterial.mColor * scene->ambient() };
-	vec3 collision_point = ray.at(collision_data.mT);
-	vec3 reflected = vec3::reflect(ray.direction(), collision_data.mNormal);
+	glm::vec3 final_color{ collision_data.mMaterial.mColor * scene->ambient() };
+	glm::vec3 collision_point = ray.at(collision_data.mT);
+	glm::vec3 reflected = glm::reflect(ray.direction(), collision_data.mNormal);
 	const vector<PointLight> & lights = scene->lights();
 	for (int i = 0; i < lights.size(); ++i)
 	{
@@ -63,19 +65,19 @@ __device__ vec3 cast_ray(float x, float y, Scene * scene)
 			continue;
 		
 		// Diffuse
-		vec3 to_light = vec3::normalize(ray.direction());
-		float cos_angle = vec3::dot(to_light, collision_data.mNormal);
+		glm::vec3 to_light = glm::normalize(ray.direction());
+		float cos_angle = glm::dot(to_light, collision_data.mNormal);
 		if (cos_angle < 0.0f)
 			continue;
 		final_color += collision_data.mMaterial.mColor * lights[i].intensity() * cos_angle;
 
 		// Specular
-		cos_angle = vec3::dot(reflected, to_light);
+		cos_angle = glm::dot(reflected, to_light);
 		if (cos_angle > 0.0f)
 			final_color += lights[i].intensity() * powf(cos_angle, collision_data.mMaterial.mShininess) * collision_data.mMaterial.mSpecularCoefficient;
 	}
 
-	return vec3::min(final_color, vec3{ 1.0f });
+	return glm::min(final_color, glm::vec3{ 1.0f });
 }
 
 __global__ void render_image(unsigned char * image_data, int width, int height, Scene * scene)
@@ -87,7 +89,7 @@ __global__ void render_image(unsigned char * image_data, int width, int height, 
 	int pixel_index = y * width * 3 + x * 3;
 
 	// Compute and store color
-	vec3 color = cast_ray(static_cast<float>(x), static_cast<float>(y), scene);
+	glm::vec3 color = cast_ray(static_cast<float>(x), static_cast<float>(y), scene);
 
 	image_data[pixel_index] = static_cast<unsigned char>(color.r * 255.99f);
 	image_data[pixel_index + 1] = static_cast<unsigned char>(color.g * 255.99f);

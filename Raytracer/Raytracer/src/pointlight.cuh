@@ -1,6 +1,9 @@
 #pragma once
 
-#include "vec3.cuh"
+#include <cuda.h>
+
+#define GLM_FORCE_CUDA
+#include <glm/glm.hpp>
 
 #include <cuda_runtime.h>
 
@@ -10,13 +13,13 @@ public:
 	// Default constructor
 	__device__ PointLight() {}
 	// Constructor
-	__device__ PointLight(const vec3 & position, const vec3 & intensity);
+	__device__ PointLight(const glm::vec3 & position, const glm::vec3 & intensity);
 
 	// Gettors
-	__device__ vec3 position() const;
-	__device__ vec3 intensity() const;
+	__device__ glm::vec3 position() const;
+	__device__ glm::vec3 intensity() const;
 
 private:
-	vec3 mPosition;
-	vec3 mIntensity;
+	glm::vec3 mPosition;
+	glm::vec3 mIntensity;
 };

@@ -1,6 +1,9 @@
 #pragma once
 
-#include "vec3.cuh"
+#include <cuda.h>
+
+#define GLM_FORCE_CUDA
+#include <glm/glm.hpp>
 
 #include <cuda_runtime.h>
 
@@ -10,17 +13,17 @@ public:
 	// Default constructor
 	__device__ Camera() {}
 	// Constructor
-	__device__ Camera(const vec3 & position, const vec3 & right, const vec3 & up, const vec3 & center);
+	__device__ Camera(const glm::vec3 & position, const glm::vec3 & right, const glm::vec3 & up, const glm::vec3 & center);
 
 	// Gettors
-	__device__ vec3 position() const;
-	__device__ vec3 right() const;
-	__device__ vec3 up() const;
-	__device__ vec3 projection_center() const;
+	__device__ glm::vec3 position() const;
+	__device__ glm::vec3 right() const;
+	__device__ glm::vec3 up() const;
+	__device__ glm::vec3 projection_center() const;
 
 private:
-	vec3 mPosition;
-	vec3 mRight;
-	vec3 mUp;
-	vec3 mProjectionCenter;
+	glm::vec3 mPosition;
+	glm::vec3 mRight;
+	glm::vec3 mUp;
+	glm::vec3 mProjectionCenter;
 };
