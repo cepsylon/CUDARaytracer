@@ -30,51 +30,63 @@ __device__ glm::vec3 cast_ray(float x, float y, Scene * scene)
 	const Camera & camera = scene->camera();
 	glm::vec3 pixel_position = camera.projection_center() + camera.right() * current_x + camera.up() * current_y;
 	Ray ray{ camera.position(), glm::normalize(pixel_position - camera.position()) };
+	glm::vec3 final_color{ 0.0f };
+	float attenuation_inverse = 1.0f;
 
-	// Check for collisions
-	CollisionData collision_data;
-	const vector<Surface *> & surfaces = scene->surfaces();
-	for (int i = 0; i < surfaces.size(); ++i)
-		surfaces[i]->collide(ray, 0.0f, collision_data.mT, collision_data);
-
-	// No need to color pixel
-	if (collision_data.mT == FLT_MAX)
-		return glm::vec3{ 0.0f };
-
-
-	// Shadow check
-	glm::vec3 final_color{ collision_data.mMaterial.mColor * scene->ambient() };
-	glm::vec3 collision_point = ray.at(collision_data.mT);
-	glm::vec3 reflected = glm::reflect(ray.direction(), collision_data.mNormal);
-	const vector<PointLight> & lights = scene->lights();
-	for (int i = 0; i < lights.size(); ++i)
+	for (int ray_count = 0; ray_count < 10; ++ray_count)
 	{
-		CollisionData dummy;
-		ray = Ray{ collision_point, lights[i].position() - collision_point };
-		int shadow_count = 0;
-		
-		// Check for collisions, if there's any, we are in shadow
-		for(int j = 0; j < surfaces.size(); ++j)
-		{
-			if (surfaces[j]->collide(ray, 0.001f, 1.0f, dummy))
-				shadow_count++;
-		}
-		
-		// In shadow
-		if (shadow_count)
-			continue;
-		
-		// Diffuse
-		glm::vec3 to_light = glm::normalize(ray.direction());
-		float cos_angle = glm::dot(to_light, collision_data.mNormal);
-		if (cos_angle < 0.0f)
-			continue;
-		final_color += collision_data.mMaterial.mColor * lights[i].intensity() * cos_angle;
+		// Check for collisions
+		CollisionData collision_data;
+		const vector<Surface *> & surfaces = scene->surfaces();
+		for (int i = 0; i < surfaces.size(); ++i)
+			surfaces[i]->collide(ray, 0.0f, collision_data.mT, collision_data);
 
-		// Specular
-		cos_angle = glm::dot(reflected, to_light);
-		if (cos_angle > 0.0f)
-			final_color += lights[i].intensity() * powf(cos_angle, collision_data.mMaterial.mShininess) * collision_data.mMaterial.mSpecularCoefficient;
+		// Hit nothing, exit
+		if (collision_data.mT == FLT_MAX)
+			break;
+
+		// Shadow check
+		final_color += collision_data.mMaterial.mColor * scene->ambient() * attenuation_inverse;
+		glm::vec3 collision_point = ray.at(collision_data.mT);
+		glm::vec3 reflected = glm::reflect(ray.direction(), collision_data.mNormal);
+		const vector<PointLight> & lights = scene->lights();
+		for (int i = 0; i < lights.size(); ++i)
+		{
+			CollisionData dummy;
+			ray = Ray{ collision_point, lights[i].position() - collision_point };
+			int shadow_count = 0;
+			
+			// Check for collisions, if there's any, we are in shadow
+			for(int j = 0; j < surfaces.size(); ++j)
+			{
+				if (surfaces[j]->collide(ray, 0.001f, 1.0f, dummy))
+					shadow_count++;
+			}
+			
+			// In shadow
+			if (shadow_count)
+				continue;
+			
+			// Diffuse
+			glm::vec3 to_light = glm::normalize(ray.direction());
+			float cos_angle = glm::dot(to_light, collision_data.mNormal);
+			if (cos_angle < 0.0f)
+				continue;
+			final_color += collision_data.mMaterial.mColor * lights[i].intensity() * cos_angle * attenuation_inverse;
+
+			// Specular
+			cos_angle = glm::dot(reflected, to_light);
+			if (cos_angle > 0.0f)
+				final_color += lights[i].intensity() * powf(cos_angle, collision_data.mMaterial.mShininess) * collision_data.mMaterial.mSpecularCoefficient * attenuation_inverse;
+
+		}
+
+		if (collision_data.mMaterial.mSpecularCoefficient)
+		{
+			attenuation_inverse *= collision_data.mMaterial.mSpecularCoefficient;
+			ray = Ray{ collision_point + collision_data.mNormal * 0.001f, reflected };
+		}
+		else break;
 	}
 
 	return glm::min(final_color, glm::vec3{ 1.0f });
