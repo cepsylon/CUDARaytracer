@@ -23,6 +23,7 @@ const int buffer_size = width * height * 3;
 const int half_width = width / 2;
 const int half_height = height / 2;
 const int shadow_sample_count = 100;
+const int depth = 10;
 
 __device__ glm::vec3 cast_ray(float x, float y, Scene * scene, curandState * random_state)
 {
@@ -35,7 +36,7 @@ __device__ glm::vec3 cast_ray(float x, float y, Scene * scene, curandState * ran
 	glm::vec3 final_color{ 0.0f };
 	float attenuation_inverse = 1.0f;
 
-	for (int ray_count = 0; ray_count < 10; ++ray_count)
+	for (int ray_count = 0; ray_count < depth; ++ray_count)
 	{
 		// Check for collisions
 		CollisionData collision_data;

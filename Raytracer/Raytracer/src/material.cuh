@@ -8,6 +8,9 @@
 struct Material
 {
 	glm::vec3 mColor;
+	glm::vec3 mAmbientAttenuation;
 	float mSpecularCoefficient;
 	float mShininess;
+	float mElectricPermittivity;
+	float mMagneticPermeability;
 };

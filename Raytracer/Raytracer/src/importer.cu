@@ -85,14 +85,11 @@ void import_scene(const char * path, Scene * scene)
 					&depth.x, &depth.y, &depth.z);
 
 				// Parse material
-				// Color, specular coefficient and shininess
-				glm::vec3 color;
-				float specular_coefficient, shininess;
 				std::getline(file, line);
-				sscanf_s(line.c_str(), "(%f,%f,%f) %f %f", &color.r, &color.g, &color.b, &specular_coefficient, &shininess);
+				Material material = import_material(line);
 
 				// Upload to GPU
-				add_box_to_scene<<<1,1>>>(scene, Material{ color, specular_coefficient, shininess }, position, width, height, depth);
+				add_box_to_scene<<<1,1>>>(scene, material, position, width, height, depth);
 				CheckCUDAError(cudaGetLastError());
 				CheckCUDAError(cudaDeviceSynchronize());
 				break;
@@ -127,14 +124,11 @@ void import_scene(const char * path, Scene * scene)
 					&depth.x, &depth.y, &depth.z);
 
 				// Parse material
-				// Color, specular coefficient and shininess
-				glm::vec3 color;
-				float specular_coefficient, shininess;
 				std::getline(file, line);
-				sscanf_s(line.c_str(), "(%f,%f,%f) %f %f", &color.r, &color.g, &color.b, &specular_coefficient, &shininess);
+				Material material = import_material(line);
 
 				// Upload to GPU
-				add_ellipsoid_to_scene<<<1,1>>>(scene, Material{ color, specular_coefficient, shininess }, position, width, height, depth);
+				add_ellipsoid_to_scene<<<1,1>>>(scene, material, position, width, height, depth);
 				CheckCUDAError(cudaGetLastError());
 				CheckCUDAError(cudaDeviceSynchronize());
 				break;
@@ -178,14 +172,11 @@ void import_scene(const char * path, Scene * scene)
 				}
 
 				// Parse material
-				// Color, specular coefficient and shininess
-				glm::vec3 color;
-				float specular_coefficient, shininess;
 				std::getline(file, line);
-				sscanf_s(line.c_str(), "(%f,%f,%f) %f %f", &color.r, &color.g, &color.b, &specular_coefficient, &shininess);
+				Material material = import_material(line);
 
 				// Upload to GPU
-				add_polygon_to_scene<<<1,1>>>(scene, Material{ color, specular_coefficient, shininess }, vertices, count);
+				add_polygon_to_scene<<<1,1>>>(scene, material, vertices, count);
 				CheckCUDAError(cudaGetLastError());
 				CheckCUDAError(cudaDeviceSynchronize());
 
@@ -203,14 +194,11 @@ void import_scene(const char * path, Scene * scene)
 					&position.x, &position.y, &position.z, &radius);
 
 				// Parse material
-				// Color, specular coefficient and shininess
-				glm::vec3 color;
-				float specular_coefficient, shininess;
 				std::getline(file, line);
-				sscanf_s(line.c_str(), "(%f,%f,%f) %f %f", &color.r, &color.g, &color.b, &specular_coefficient, &shininess);
+				Material material = import_material(line);
 
 				// Upload to GPU
-				add_sphere_to_scene<<<1,1>>>(scene, Material{ color, specular_coefficient, shininess }, position, radius);
+				add_sphere_to_scene<<<1,1>>>(scene, material, position, radius);
 				CheckCUDAError(cudaGetLastError());
 				CheckCUDAError(cudaDeviceSynchronize());
 				break;
@@ -220,6 +208,19 @@ void import_scene(const char * path, Scene * scene)
 			}
 		}
 	}
+}
+
+Material import_material(const std::string & line)
+{
+	glm::vec3 color, attenuation;
+	float specular_coefficient, shininess, permittivity, permeability;
+	sscanf_s(line.c_str(), "(%f,%f,%f) %f %f",
+		&color.r, &color.g, &color.b,
+		&specular_coefficient, &shininess,
+		&attenuation.x, &attenuation.y, &attenuation.z,
+		&permittivity, &permeability);
+
+	return Material{ color, attenuation, specular_coefficient, shininess, permittivity, permeability };
 }
 
 }
