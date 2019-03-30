@@ -22,7 +22,7 @@ const int height = 500;
 const int buffer_size = width * height * 3;
 const int half_width = width / 2;
 const int half_height = height / 2;
-const int shadow_sample_count = 100;
+const int shadow_sample_count = 10;
 const int max_depth = 10;
 
 
@@ -37,6 +37,20 @@ __device__ float compute_refl_coefficient(const Ray & ray, const CollisionData &
 	float perpendicular = (ni_over_nt * cos_angle - square_root) / (ni_over_nt * cos_angle + square_root);
 	float parallel = (cos_angle - ni_over_nt * square_root) / (cos_angle + ni_over_nt * square_root);
 	return 0.5f * (perpendicular * perpendicular + parallel * parallel);
+}
+
+__device__ glm::vec3 snells_law(const Ray & ray, const CollisionData & data, float ni)
+{
+	glm::vec3 incident = -ray.direction();
+	float dot_incident_normal = glm::dot(incident, data.mNormal);
+	float ni_over_nt = ni / data.mMaterial.mRefractionIndex;
+	float inside_sqrt = 1.0f - (ni_over_nt * ni_over_nt * (1.0f - dot_incident_normal * dot_incident_normal));
+	float cos_angle = std::sqrt(inside_sqrt);
+	if (dot_incident_normal >= 0.0f)
+		cos_angle = -cos_angle;
+
+	// Compute refracted ray
+	return glm::normalize((cos_angle + ni_over_nt * dot_incident_normal) * data.mNormal - ni_over_nt * incident);
 }
 
 __device__ float compute_lit_percentage(const vector<Surface *> & surfaces, const PointLight & light, const glm::vec3 & intersection_point, curandState * random_state)
@@ -68,6 +82,7 @@ struct RayData
 {
 	Ray mRay;
 	float mAttenuationInv;
+	float mNi;
 	int mDepth;
 };
 
@@ -78,12 +93,11 @@ __device__ glm::vec3 cast_ray(float x, float y, Scene * scene, curandState * ran
 	const Camera & camera = scene->camera();
 	glm::vec3 pixel_position = camera.projection_center() + camera.right() * current_x + camera.up() * current_y;
 	glm::vec3 final_color{ 0.0f };
-	//float ni = 1.0f;
 
 	// Vector to know how many rays we have left since recursion will lead to stackoverflow, we need an iterative mode
 	// We start with the initial ray casted from the camera to the pixel coordinate
 	vector<RayData> ray_stack;
-	ray_stack.push_back(RayData{ Ray{ camera.position(), glm::normalize(pixel_position - camera.position()) }, 1.0f, 0 });
+	ray_stack.push_back(RayData{ Ray{ camera.position(), glm::normalize(pixel_position - camera.position()) }, 1.0f, 1.0f, 0 });
 
 	while(ray_stack.empty() == false)
 	{
@@ -96,9 +110,9 @@ __device__ glm::vec3 cast_ray(float x, float y, Scene * scene, curandState * ran
 		for (int i = 0; i < surfaces.size(); ++i)
 			surfaces[i]->collide(ray_data.mRay, 0.0f, collision_data.mT, collision_data);
 
-		// Hit nothing, exit
+		// Hit nothing, next ray
 		if (collision_data.mT == FLT_MAX)
-			break;
+			continue;
 
 		// Intersection point and reflected direction
 		glm::vec3 intersection_point = ray_data.mRay.at(collision_data.mT);
@@ -132,14 +146,35 @@ __device__ glm::vec3 cast_ray(float x, float y, Scene * scene, curandState * ran
 			}
 		}
 
-		// Reflection
-		//float reflection_coefficient = compute_refl_coefficient(ray, collision_data, ni);
+		// Getting out of the object after refraction
+		if (ray_data.mNi != 1.0f)
+			collision_data.mMaterial.mRefractionIndex = 1.0f;
+		if (glm::dot(-ray_data.mRay.direction(), collision_data.mNormal) < 0.0f)
+			collision_data.mNormal = -collision_data.mNormal;
+
+		// Keep computing color until max depth
 		int next_depth = ray_data.mDepth + 1;
-		if (next_depth < max_depth && collision_data.mMaterial.mSpecularCoefficient)
+		if (next_depth < max_depth)
 		{
-			Ray next_ray{ intersection_point + collision_data.mNormal * 0.001f, reflected };
-			float next_attenuation = ray_data.mAttenuationInv * collision_data.mMaterial.mSpecularCoefficient;
-			ray_stack.push_back(RayData{ next_ray, next_attenuation, next_depth });
+			float reflection_coefficient = compute_refl_coefficient(ray_data.mRay, collision_data, ray_data.mNi);
+			float transmission_coefficient = (1.0f - reflection_coefficient) * collision_data.mMaterial.mSpecularCoefficient;
+			reflection_coefficient *= collision_data.mMaterial.mSpecularCoefficient;
+
+			// Reflection
+			if (reflection_coefficient > 0.0f)
+			{
+				Ray reflected_ray{ intersection_point + collision_data.mNormal * 0.001f, reflected };
+				float next_attenuation = ray_data.mAttenuationInv * reflection_coefficient;
+				ray_stack.push_back(RayData{ reflected_ray, next_attenuation, ray_data.mNi, next_depth });
+			}
+
+			// Transmission
+			if (transmission_coefficient > 0.0f)
+			{
+				Ray refracted_ray{ intersection_point - collision_data.mNormal * 0.001f, snells_law(ray_data.mRay, collision_data, ray_data.mNi) };
+				float next_attenuation = ray_data.mAttenuationInv * transmission_coefficient;
+				ray_stack.push_back(RayData{ refracted_ray, next_attenuation, collision_data.mMaterial.mRefractionIndex, next_depth });
+			}
 		}
 	}
 
