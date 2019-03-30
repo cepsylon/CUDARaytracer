@@ -5,6 +5,7 @@
 #include "sphere.cuh"
 #include "box.cuh"
 #include "ellipsoid.cuh"
+#include "polygon.cuh"
 
 #define GLM_FORCE_CUDA
 #include <glm/glm.hpp>
@@ -28,6 +29,11 @@ __global__ void add_box_to_scene(Scene * scene, Material material, glm::vec3 pos
 __global__ void add_ellipsoid_to_scene(Scene * scene, Material material, glm::vec3 position, glm::vec3 width, glm::vec3 height, glm::vec3 depth)
 {
 	scene->add(new Ellipsoid{ material, position, width, height, depth });
+}
+
+__global__ void add_polygon_to_scene(Scene * scene, Material material, glm::vec3 * data, int count)
+{
+	scene->add(new Polygon{ material, data, count });
 }
 
 __global__ void add_light_to_scene(Scene * scene, glm::vec3 position, glm::vec3 intensity)
@@ -58,6 +64,7 @@ void import_scene(const char * path, Scene * scene)
 			{
 			case 'A':
 			{
+				// Parse
 				glm::vec3 ambient;
 				sscanf_s(line.c_str(), "A (%f,%f,%f)", &ambient.x, &ambient.y, &ambient.z);
 
@@ -69,16 +76,15 @@ void import_scene(const char * path, Scene * scene)
 			}
 			case 'B':
 			{
+				// Parse position, width, height and depth
 				glm::vec3 position, width, height, depth;
-
-				// Position, width, height and depth
 				sscanf_s(line.c_str(), "B (%f,%f,%f) (%f,%f,%f) (%f,%f,%f) (%f,%f,%f)",
 					&position.x, &position.y, &position.z,
 					&width.x, &width.y, &width.z,
 					&height.x, &height.y, &height.z,
 					&depth.x, &depth.y, &depth.z);
 
-				// Material
+				// Parse material
 				// Color, specular coefficient and shininess
 				glm::vec3 color;
 				float specular_coefficient, shininess;
@@ -93,9 +99,8 @@ void import_scene(const char * path, Scene * scene)
 			}
 			case 'C':
 			{
+				// Parse projection center, right, up, distance to projection center
 				glm::vec3 position, right, up, center;
-				
-				// Projection center, right, up, distance to projection center
 				sscanf_s(line.c_str(), "C (%f,%f,%f) (%f,%f,%f) (%f,%f,%f) %f",
 					&center.x, &center.y, &center.z,
 					&right.x, &right.y, &right.z, 
@@ -113,16 +118,15 @@ void import_scene(const char * path, Scene * scene)
 			}
 			case 'E':
 			{
+				// Parse position, width, height and depth
 				glm::vec3 position, width, height, depth;
-
-				// Position, width, height and depth
 				sscanf_s(line.c_str(), "E (%f,%f,%f) (%f,%f,%f) (%f,%f,%f) (%f,%f,%f)",
 					&position.x, &position.y, &position.z,
 					&width.x, &width.y, &width.z,
 					&height.x, &height.y, &height.z,
 					&depth.x, &depth.y, &depth.z);
 
-				// Material
+				// Parse material
 				// Color, specular coefficient and shininess
 				glm::vec3 color;
 				float specular_coefficient, shininess;
@@ -137,16 +141,54 @@ void import_scene(const char * path, Scene * scene)
 			}
 			case 'L':
 			{
+				// Parse position and intensity
 				glm::vec3 position, intensity;
-
-				// Position and intensity
 				sscanf_s(line.c_str(), "L (%f,%f,%f) (%f,%f,%f)",
 					&position.x, &position.y, &position.z,
 					&intensity.x, &intensity.y, &intensity.z);
 
+				// Upload to GPU
 				add_light_to_scene<<<1,1>>>(scene, position, intensity);
 				CheckCUDAError(cudaGetLastError());
 				CheckCUDAError(cudaDeviceSynchronize());
+				break;
+			}
+			case 'P':
+			{
+				// Parse vertex count
+				int count = 0;
+				sscanf_s(line.c_str(), "P %d", &count);
+
+				// Shared memory to pass vertices to gpu
+				glm::vec3 * vertices = nullptr;
+				CheckCUDAError(cudaMallocManaged((void **)&vertices, sizeof(glm::vec2) * count));
+
+				// Parse vertices
+				size_t start = line.find_first_of("(");
+				size_t end = line.find_first_of(")", start) + 1;
+				for (int i = 0; i < count; ++i)
+				{
+					std::string vertex = line.substr(start, end - start);
+					sscanf_s(vertex.c_str(), "(%f,%f,%f)", &vertices[i].x, &vertices[i].y, &vertices[i].z);
+
+					start = line.find_first_of("(", end);
+					end = line.find_first_of(")", start) + 1;
+				}
+
+				// Parse material
+				// Color, specular coefficient and shininess
+				glm::vec3 color;
+				float specular_coefficient, shininess;
+				std::getline(file, line);
+				sscanf_s(line.c_str(), "(%f,%f,%f) %f %f", &color.r, &color.g, &color.b, &specular_coefficient, &shininess);
+
+				// Upload to GPU
+				add_polygon_to_scene<<<1,1>>>(scene, Material{ color, specular_coefficient, shininess }, vertices, count);
+				CheckCUDAError(cudaGetLastError());
+				CheckCUDAError(cudaDeviceSynchronize());
+
+				// Free memory
+				CheckCUDAError(cudaFree(vertices));
 				break;
 			}
 			case 'S':
@@ -154,11 +196,11 @@ void import_scene(const char * path, Scene * scene)
 				glm::vec3 position;
 				float radius;
 
-				// Position and radius
+				// Parse position and radius
 				sscanf_s(line.c_str(), "S (%f,%f,%f) %f",
 					&position.x, &position.y, &position.z, &radius);
 
-				// Material
+				// Parse material
 				// Color, specular coefficient and shininess
 				glm::vec3 color;
 				float specular_coefficient, shininess;

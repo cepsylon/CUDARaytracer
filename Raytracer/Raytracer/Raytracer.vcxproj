@@ -98,6 +98,7 @@
     <CudaCompile Include="src\importer.cu" />
     <CudaCompile Include="src\main.cu" />
     <CudaCompile Include="src\pointlight.cu" />
+    <CudaCompile Include="src\polygon.cu" />
     <CudaCompile Include="src\ray.cu" />
     <CudaCompile Include="src\scene.cu" />
     <CudaCompile Include="src\sphere.cu" />
@@ -111,6 +112,7 @@
     <ClInclude Include="src\importer.cuh" />
     <ClInclude Include="src\material.cuh" />
     <ClInclude Include="src\pointlight.cuh" />
+    <ClInclude Include="src\polygon.cuh" />
     <ClInclude Include="src\ray.cuh" />
     <ClInclude Include="src\scene.cuh" />
     <ClInclude Include="src\sphere.cuh" />
