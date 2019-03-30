@@ -11,6 +11,7 @@
 #define STBI_MSC_SECURE_CRT
 #include <stb/stb_image_write.h>
 
+#include <curand_kernel.h>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
@@ -21,8 +22,9 @@ const int height = 500;
 const int buffer_size = width * height * 3;
 const int half_width = width / 2;
 const int half_height = height / 2;
+const int shadow_sample_count = 100;
 
-__device__ glm::vec3 cast_ray(float x, float y, Scene * scene)
+__device__ glm::vec3 cast_ray(float x, float y, Scene * scene, curandState * random_state)
 {
 	// Compute ray
 	float current_x = (static_cast<float>(x) + 0.5f - half_width) / half_width;
@@ -53,32 +55,42 @@ __device__ glm::vec3 cast_ray(float x, float y, Scene * scene)
 		for (int i = 0; i < lights.size(); ++i)
 		{
 			CollisionData dummy;
-			ray = Ray{ collision_point, lights[i].position() - collision_point };
 			int shadow_count = 0;
 			
-			// Check for collisions, if there's any, we are in shadow
-			for(int j = 0; j < surfaces.size(); ++j)
+			// Soft shadows
+			for (unsigned current_sample = 0; current_sample < shadow_sample_count; ++current_sample)
 			{
-				if (surfaces[j]->collide(ray, 0.001f, 1.0f, dummy))
-					shadow_count++;
+				ray = Ray{ collision_point, lights[i].rand_pos(random_state) - collision_point };
+				// Check for collisions, if there's any, we are in shadow
+				for(int j = 0; j < surfaces.size(); ++j)
+				{
+					if (surfaces[j]->collide(ray, 0.001f, 1.0f, dummy))
+					{
+						shadow_count++;
+						break;
+					}
+				}
 			}
 			
-			// In shadow
-			if (shadow_count)
+			// Full shadow
+			if (shadow_count == shadow_sample_count)
 				continue;
 			
+			// Compute how much the surface is lit
+			float shadow_percentage = 1.0f - static_cast<float>(shadow_count) / static_cast<float>(shadow_sample_count);
+
 			// Diffuse
+			ray = Ray{ collision_point, lights[i].position() - collision_point };
 			glm::vec3 to_light = glm::normalize(ray.direction());
 			float cos_angle = glm::dot(to_light, collision_data.mNormal);
 			if (cos_angle < 0.0f)
 				continue;
-			final_color += collision_data.mMaterial.mColor * lights[i].intensity() * cos_angle * attenuation_inverse;
+			final_color += collision_data.mMaterial.mColor * lights[i].intensity() * cos_angle * attenuation_inverse * shadow_percentage;
 
 			// Specular
 			cos_angle = glm::dot(reflected, to_light);
 			if (cos_angle > 0.0f)
-				final_color += lights[i].intensity() * powf(cos_angle, collision_data.mMaterial.mShininess) * collision_data.mMaterial.mSpecularCoefficient * attenuation_inverse;
-
+				final_color += lights[i].intensity() * powf(cos_angle, collision_data.mMaterial.mShininess) * collision_data.mMaterial.mSpecularCoefficient * attenuation_inverse * shadow_percentage;
 		}
 
 		if (collision_data.mMaterial.mSpecularCoefficient)
@@ -100,8 +112,12 @@ __global__ void render_image(unsigned char * image_data, int width, int height, 
 	if (x >= width || y >= height) return;
 	int pixel_index = y * width * 3 + x * 3;
 
+	// Random state for pseudo random number generator
+	curandState random_state;
+	curand_init(1997, pixel_index, 0, &random_state);
+
 	// Compute and store color
-	glm::vec3 color = cast_ray(static_cast<float>(x), static_cast<float>(y), scene);
+	glm::vec3 color = cast_ray(static_cast<float>(x), static_cast<float>(y), scene, &random_state);
 
 	image_data[pixel_index] = static_cast<unsigned char>(color.r * 255.99f);
 	image_data[pixel_index + 1] = static_cast<unsigned char>(color.g * 255.99f);
@@ -128,7 +144,7 @@ int main()
 	CheckCUDAError(cudaDeviceSynchronize());
 	importer::import_scene("scene.txt", scene);
 
-	// Allocate memory in GPU
+	// Allocate memory in shared memory
 	unsigned char * image_data = nullptr;
 	CheckCUDAError(cudaMallocManaged((void **)&image_data, buffer_size));
 

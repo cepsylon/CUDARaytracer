@@ -36,9 +36,9 @@ __global__ void add_polygon_to_scene(Scene * scene, Material material, glm::vec3
 	scene->add(new Polygon{ material, data, count });
 }
 
-__global__ void add_light_to_scene(Scene * scene, glm::vec3 position, glm::vec3 intensity)
+__global__ void add_light_to_scene(Scene * scene, glm::vec3 position, glm::vec3 intensity, float radius)
 {
-	scene->add(PointLight{ position, intensity });
+	scene->add(PointLight{ position, intensity, radius });
 }
 
 __global__ void set_scene_ambient(Scene * scene, glm::vec3 ambient)
@@ -143,12 +143,14 @@ void import_scene(const char * path, Scene * scene)
 			{
 				// Parse position and intensity
 				glm::vec3 position, intensity;
-				sscanf_s(line.c_str(), "L (%f,%f,%f) (%f,%f,%f)",
+				float radius;
+				sscanf_s(line.c_str(), "L (%f,%f,%f) (%f,%f,%f) %f",
 					&position.x, &position.y, &position.z,
-					&intensity.x, &intensity.y, &intensity.z);
+					&intensity.x, &intensity.y, &intensity.z,
+					&radius);
 
 				// Upload to GPU
-				add_light_to_scene<<<1,1>>>(scene, position, intensity);
+				add_light_to_scene<<<1,1>>>(scene, position, intensity, radius);
 				CheckCUDAError(cudaGetLastError());
 				CheckCUDAError(cudaDeviceSynchronize());
 				break;
