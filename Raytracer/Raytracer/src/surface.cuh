@@ -24,6 +24,7 @@ class Surface
 {
 public:
 	__device__ Surface(const Material & material);
+	__device__ virtual ~Surface() {}
 	__device__ virtual bool collide(const Ray & ray, float t_min, float t_max, CollisionData & collision_data) const = 0;
 
 protected:
